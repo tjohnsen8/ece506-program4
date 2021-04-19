@@ -39,17 +39,20 @@ Directory::~Directory() {
 }
 //
 dir_entry *Directory::find_dir_line(ulong tag) {
-	// FIX_ME : Traverse the directory till dir_size
-	// check if the tag matches. If yes, return the 
-	// directory entry. Else return NULL
-        return NULL;
+    for (uint i = 0; i < dir_size; i++){
+        if(entry[i]->tag == tag){
+            return entry;
+        }
+    }
+    return NULL;
 }
 //
 dir_entry *Directory::find_empty_line(ulong tag) {
-	// FIX_ME : Traverse the directory till dir_size
-	// check if there is an uncached line. If yes, return
-	// the uncached entry. You may want to pop an error
-	// if no empty line and terminate the execution
-	return NULL;
+	for (uint i = 0; i < dir_size; i++){
+        if(entry[i]->state == U){
+            return entry;
+        }
+    }
+	exit(EXIT_FAILURE);
 }
 //
