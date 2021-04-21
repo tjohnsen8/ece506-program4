@@ -19,20 +19,58 @@ void MESI::PrRd(ulong addr, int processor_number) {
 	// The below comments are for reference and might not be
 	// sufficient to match the debug runs.
 	//
+  //
 	// Update the Per-cache global counter to maintain LRU
 	// order among cache ways, updated on every cache access
-	// Increment the global read counter.
-	// Check whether the line is cached in the processor cache.
+  // ^ we think this is current_cycle, if LRU or replacement is wrong, one area to look
+  // Increment the global read counter.
+  // Check whether the line is cached in the processor cache.
+  current_cycle++;
+  reads++;
+  cache_line* line = find_line(addr);
+
 	// If not cached, allocate a fresh line and update the state. (M,E,S,I)
-	// Check whether the directory entry is updated. If not updated,
-	// create a fresh entry in the directory, update the sharer vector or list.
-	// Update the directory state (U, EM, S_).
-	// Increment the directory operation counter like signalrds,
+  if (line == NULL || line->get_state() == I) {
+    // update counters
+    // Increment the directory operation counter like signalrds,
+    // Do not forget to update miss/hit counter
+    read_misses++;
+    response_replyds++;
+
+    cache_line *newline = allocate_line(addr);
+    dir_entry* dir_line = directory->find_dir_line(newline->get_tag());
+    if (dir_line == NULL) {
+      // cache line is not in any cache - set state to E
+      newline->set_state(E);
+      // create in directory - find_empty_line will always return a line (exits if full)
+      // Check whether the directory entry is updated. If not updated,
+      // create a fresh entry in the directory, update the sharer vector or list.
+      dir_line = directory->find_empty_line(0);
+      dir_line->set_dir_tag(newline->get_tag());
+      // Update the directory state (U, EM, S_).
+      dir_line->set_dir_state(EM);
+    }
+    else {
+      // directory found the line, so it exists in other caches
+      newline->set_state(S);
+      // Update the directory state (U, EM, S_).
+      dir_line->set_dir_state(S_);
+    }
+    // update the sharer vector or list.
+    dir_line->add_sharer_entry(processor_number);
+  }
+  else {
+    // If the line is cached in the processor cache, do not forget
+    // to update the LRU
+    update_LRU(line);
+  }
+
+  signal_rds++;
+
+
 	// response_replies etc... Invoke the relevant directory
 	// signal functions like signalRd or signalRdX etc...
-	// If the line is cached in the processor cache, do not forget
-	// to update the LRU
-	// Do not forget to update miss/hit counter
+
 }
 //
 void MESI::PrWr(ulong addr, int processor_number) {

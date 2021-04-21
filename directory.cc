@@ -3,7 +3,7 @@
 			Source 		:	directory.cc
 			Owner		:	Ed Gehringer
 			Email Id	:	efg@ncsu.edu
-*************************************************************/ 
+*************************************************************/
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -32,7 +32,7 @@ Directory::Directory(ulong num_entries, int type) {
 	}
 }
 
-Directory::~Directory() { 
+Directory::~Directory() {
 	for (uint i = 0; i < dir_size; i++){
 		delete entry[i];
 	}
@@ -41,7 +41,7 @@ Directory::~Directory() {
 dir_entry *Directory::find_dir_line(ulong tag) {
     for (uint i = 0; i < dir_size; i++){
         if(entry[i]->tag == tag){
-            return entry;
+            return entry[i];
         }
     }
     return NULL;
@@ -50,7 +50,7 @@ dir_entry *Directory::find_dir_line(ulong tag) {
 dir_entry *Directory::find_empty_line(ulong tag) {
 	for (uint i = 0; i < dir_size; i++){
         if(entry[i]->state == U){
-            return entry;
+            return entry[i];
         }
     }
 	exit(EXIT_FAILURE);

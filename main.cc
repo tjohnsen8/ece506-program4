@@ -8,8 +8,8 @@
 #include <assert.h>
 #include <fstream>
 using namespace std;
-#include "cache.h"			
-#include "main.h"			
+#include "cache.h"
+#include "main.h"
 #include "io_function.h"
 
 const int max_processors = 16;
@@ -18,7 +18,7 @@ int blk_size, protocol;
 Directory * directory;
 Cache* processor_cache[max_processors];
 
-// Look up table to print the protocol names 
+// Look up table to print the protocol names
 const char* protocol_names[ ] = { "MESI with FBV", "MESI with SCI" };
 
 //*************************************************************
@@ -39,15 +39,15 @@ int main(int argc, char *argv[]){
     blk_size	   		= atoi(argv[3]);
     num_processors 		= atoi(argv[4]);
 	protocol			= 0;
-    int dir_type			= atoi(argv[5]);	
+    int dir_type			= atoi(argv[5]);
 	char *fname 		= (char *)malloc(20);
     fname 				= argv[6];
 	if (argv[7]) {
-			instr_count             = atoi(argv[9]);
+			instr_count             = atoi(argv[7]);
 		}
 	//
 	//*******Print out simulator configuration here*******//
-	print_sim_stats(cache_size, cache_assoc, 
+	print_sim_stats(cache_size, cache_assoc,
 					blk_size, num_processors,
 					protocol_names, protocol, fname, dir_type);
 
@@ -81,14 +81,14 @@ void print_input_format(){
 	printf(" *----------------------------------------------*\n");
 }
 //
-//**	This function is used to create cache for all the processors 
+//**	This function is used to create cache for all the processors
 //
-void create_processor_cache(int num_processors, int size, int assoc, 
+void create_processor_cache(int num_processors, int size, int assoc,
 							int blk_size, int protocol, ulong directory_size, int dir_type){
 	int i;
 	directory = new Directory(directory_size, dir_type);
 
-	// create cache for each processor based on the 
+	// create cache for each processor based on the
 	// protocol using abstract factory pattern
 	for (i=0;i<num_processors;i++)
 	{
@@ -99,12 +99,12 @@ void create_processor_cache(int num_processors, int size, int assoc,
 	}
 }
 //
-//**	This function performs the following			 	
-//**	[1] Opens the file to be read and reports an 
+//**	This function performs the following
+//**	[1] Opens the file to be read and reports an
 //** 	error if open fails
-//**  	[2]	Reads the trace file,line by line, each 
-//** 	(processor#, operation, address) propagate each request down 
-//**	through memory hierarchy by calling 
+//**  	[2]	Reads the trace file,line by line, each
+//** 	(processor#, operation, address) propagate each request down
+//**	through memory hierarchy by calling
 //**	cachesArray[processor#]->Access(...)
 //
 void simulate_caches(char *fname, int instr_count){
@@ -116,21 +116,21 @@ void simulate_caches(char *fname, int instr_count){
 	int line_count = 0;
 	// Print error if the file cannot be found or opened
     pFile = fopen (fname,"r");
-    if (pFile == 0)	{	
+    if (pFile == 0)	{
 		printf("Trace file problem\n");
 		exit(0);
     }
-   
-	// Read each entry from the trace file and perform 
+
+	// Read each entry from the trace file and perform
 	// the relevant operation (read/write) based on the input
     while (fscanf(pFile, "%d %c %x", &proc_no, &op, &addr) != EOF) {
 		line_count++;
 		if (op == 'w')
 			processor_cache[proc_no]->PrWr((ulong) addr, proc_no);
-		else 
-			processor_cache[proc_no]->PrRd((ulong) addr, proc_no);	
+		else
+			processor_cache[proc_no]->PrRd((ulong) addr, proc_no);
 		if (line_count == instr_count)
-			break; 	
+			break;
     }
     fclose(pFile);
 }
@@ -140,11 +140,11 @@ void simulate_caches(char *fname, int instr_count){
 int sharers(ulong addr) {
 	int count = 0;
 	for (int i = 0; i < num_processors; i++){
-		if (processor_cache[i]->find_line(addr) != NULL) 
+		if (processor_cache[i]->find_line(addr) != NULL)
 			count++;
 	}
 	return count;
-} 
+}
 //
 void sendInv(ulong addr, int proc_num){
 	processor_cache[proc_num]->Inv(addr);
