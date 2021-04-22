@@ -112,9 +112,24 @@ void MESI::signalRd(ulong addr, int processor_number){
 	// sufficient to match the debug runs.
 	//
 	// Check the directory state and update the cache2cache counter
-	// Update the directory state
-	// Update the vector/list
-	// Send Intervention or Invalidation
+    
+    cache_line* line = find_line(addr);
+    dir_entry* dir_line = directory->find_dir_line(line->tag);
+    if(dir_line != NULL){
+        cache2cache++;
+        dir_state ds = dir_line->get_state();
+        if(ds == EM){
+            flushes++;
+            write_backs++;
+            // Update the directory state
+            line->set_state(S);
+            dir_line->set_dir_state(S);
+            // Update the vector/list
+            dir_line->add_sharer_entry(processor_number);
+            // Send Intervention or Invalidation
+            sendInt(addr, processor_number);
+        }
+    }
 }
 
 void MESI::signalRdX(ulong addr, int processor_number){
