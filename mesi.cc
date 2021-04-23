@@ -134,12 +134,31 @@ void MESI::signalRd(ulong addr, int processor_number){
 
 void MESI::signalRdX(ulong addr, int processor_number){
 	// YOUR CODE HERE
-	// Refer to signalRd description in the handout
+	// Change cache state to M
+    //Change Directory state to EM
+    //Invalidate Sharers
+    cache_line* line = find_line(addr);
+    dir_entry* dir_line = directory->find_dir_line(line->tag);
+    if(dir_line != NULL){
+        dir_line->set_dir_state(EM);
+        line->set_state(M);
+        invalidations++;
+        //I am not sure if this is what he meant when he said invalidate sharers.
+        sendInv(addr, processor_number);
+    }
 }
 
 void MESI::signalUpgr(ulong addr, int processor_number){
 	// YOUR CODE HERE
 	// Refer to signalUpgr description in the handout
+    cache_line* line = find_line(addr);
+    dir_entry* dir_line = directory->find_dir_line(line->tag);
+    if(dir_line != NULL){
+        dir_line->set_dir_state(U);
+        line->set_state(I);
+        invalidations++;
+        cache2cache++;
+    }
 }
 
 void MESI::Int(ulong addr) {
