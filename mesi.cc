@@ -38,34 +38,14 @@ void MESI::PrRd(ulong addr, int processor_number) {
     response_replyds++;
 
     cache_line *newline = allocate_line(addr);
-    dir_entry* dir_line = directory->find_dir_line(newline->get_tag());
-    if (dir_line == NULL) {
-      // cache line is not in any cache - set state to E
-      newline->set_state(E);
-      // create in directory - find_empty_line will always return a line (exits if full)
-      // Check whether the directory entry is updated. If not updated,
-      // create a fresh entry in the directory, update the sharer vector or list.
-      dir_line = directory->find_empty_line(0);
-      dir_line->set_dir_tag(newline->get_tag());
-      // Update the directory state (U, EM, S_).
-      dir_line->set_dir_state(EM);
-    }
-    else {
-      // directory found the line, so it exists in other caches
-      newline->set_state(S);
-      // Update the directory state (U, EM, S_).
-      dir_line->set_dir_state(S_);
-    }
-    // update the sharer vector or list.
-    dir_line->add_sharer_entry(processor_number);
+    newline->set_state(I);
+    signalRd(addr, processor_number);
   }
   else {
     // If the line is cached in the processor cache, do not forget
     // to update the LRU
     update_LRU(line);
   }
-
-  signal_rds++;
 
 
 	// response_replies etc... Invoke the relevant directory
@@ -145,30 +125,45 @@ void MESI::signalRd(ulong addr, int processor_number){
 	// The below comments are for reference and might not be
 	// sufficient to match the debug runs.
 	//
-	// Check the directory state and update the cache2cache counter
 
-    cache_line* line = find_line(addr);
-    dir_entry* dir_line = directory->find_dir_line(line->get_tag());
-    if(dir_line != NULL){
-        cache2cache++;
-        dir_state ds = dir_line->get_state();
-        if(ds == EM){
-            flushes++;
-            write_backs++;
-            // Update the directory state
-            line->set_state(S);
-            dir_line->set_dir_state(S_);
-            // Update the vector/list
-            dir_line->add_sharer_entry(processor_number);
-            // Send Intervention or Invalidation
-            sendInt(addr, processor_number);
-        }
+  signal_rds++;
+
+  // Check the directory state and update the cache2cache counter
+  cache_line* line = find_line(addr);
+  dir_entry* dir_line = directory->find_dir_line(line->get_tag());
+  if (dir_line == NULL) {
+    memory_transactions++;
+    // cache line is not in any cache - set state to E
+    line->set_state(E);
+    // create in directory - find_empty_line will always return a line (exits if full)
+    // Check whether the directory entry is updated. If not updated,
+    // create a fresh entry in the directory, update the sharer vector or list.
+    dir_line = directory->find_empty_line(0);
+    dir_line->set_dir_tag(line->get_tag());
+    // Update the directory state (U, EM, S_).
+    dir_line->set_dir_state(EM);
+  } else {
+    // directory found the line, so it exists in other caches
+    cache2cache++;
+    dir_state ds = dir_line->get_state();
+    if(ds == EM){
+        // update the directory state
+        dir_line->set_dir_state(S_);
+        // Send Intervention
+        interventions++;
+        dir_line->sendInt_to_sharer(addr, 0, processor_number);
     }
+    // Update the cache line state
+    line->set_state(S);
+  }
+  // update the sharer vector or list.
+  dir_line->add_sharer_entry(processor_number);
 }
 
 void MESI::signalRdX(ulong addr, int processor_number){
-	// YOUR CODE HERE
-	// Change cache state to M
+	  // YOUR CODE HERE
+    signal_rdxs++;
+	  // Change cache state to M
     //Change Directory state to EM
     //Invalidate Sharers
     cache_line* line = find_line(addr);
@@ -177,24 +172,29 @@ void MESI::signalRdX(ulong addr, int processor_number){
         dir_line->set_dir_state(EM);
         line->set_state(M);
         invalidations++;
-        //I am not sure if this is what he meant when he said invalidate sharers.
-        sendInv(addr, processor_number);
+        dir_line->sendInv_to_sharer(addr, 0, processor_number);
     }
 }
 
 void MESI::signalUpgr(ulong addr, int processor_number){
 	// YOUR CODE HERE
 	// Refer to signalUpgr description in the handout
+    signal_upgrs++;
     cache_line* line = find_line(addr);
     dir_entry* dir_line = directory->find_dir_line(line->get_tag());
-    if(dir_line != NULL){
-        dir_line->set_dir_state(U);
-        line->set_state(I);
+    if(dir_line != NULL) {
+        dir_line->set_dir_state(EM);
+        line->set_state(M);
         invalidations++;
+        dir_line->sendInv_to_sharer(addr, 0, processor_number);
         cache2cache++;
     }
 }
 
+// Int is called by the directory to a cache that the directory has tracked as a
+//  owner of the cache line. This means that the directory thinks the processor
+//  that this function is running on has a copy of the cached line in the E or M
+//  state.
 void MESI::Int(ulong addr) {
 	// YOUR CODE HERE
 	// The below comments are for reference and might not be
@@ -203,6 +203,20 @@ void MESI::Int(ulong addr) {
 	// Update the relevant counter, if the cache copy is dirty,
 	// same needs to be written back to main memory. This is
 	// achieved by simply updating the writeback counter
+  cache_line* line = find_line(addr);
+
+  if (line == NULL || line->get_state() == I || line->get_state() == S)
+    return;
+
+  // in the E or M state
+  flushes++;
+
+  if (line->get_state() == M)
+    write_back(0);
+
+  // always go to shared state
+  line->set_state(S);
+
 }
 
 // Inv is called by the directory to a cache that the directory has tracked as a
@@ -222,9 +236,13 @@ void MESI::Inv(ulong addr) {
   // for states S, E, M, ack the invalidation
   inv_acks++;
 
-  if (line->get_state() == E || line->get_state() == M) {
-    // flush to home and other proc required
+  if (line->get_state() == E) {
+    // flush required
     flushes++;
+  } else if (line->get_state() == M) {
+    // flush and write back required
+    flushes++;
+    write_back(0);
   }
 
   // always set to state I
