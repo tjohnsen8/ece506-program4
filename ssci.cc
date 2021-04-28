@@ -22,13 +22,8 @@ void SSCI::remove_sharer_entry(int proc_num){
   }
 }
 
-int SSCI::is_cached(int proc_num){
-	for (ssci_it it = cache_list.begin(); it != cache_list.end(); it++) {
-    if (*it == proc_num)
-      return 1;
-  }
-
-	return 0; // Returning 0 to avoid compilation error
+int SSCI::is_cached(int proc_num) {
+  return (cache_list.size() > 0 ? 1 : 0);
 }
 
 void SSCI::sendInv_to_sharer(ulong addr, int num_proc, int proc_num){

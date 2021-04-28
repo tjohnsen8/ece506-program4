@@ -24,10 +24,11 @@ void FBV::remove_sharer_entry(int proc_num){
 int FBV::is_cached(int num_proc){
 	// Check bit vector for any set bit.
 	// If set, return 1, else send 0
-  if (num_proc < 0 || num_proc >= 16)
-    return 0;
-
-  return bit[num_proc] ? 1 : 0;
+  for (int i=0; i<16; i++) {
+    if (bit[i])
+      return 1;
+  }
+  return 0;
 }
 
 void FBV::sendInt_to_sharer(ulong addr, int num_proc, int proc_num){
