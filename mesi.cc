@@ -31,14 +31,14 @@ void MESI::PrRd(ulong addr, int processor_number) {
 
 	// If not cached, allocate a fresh line and update the state. (M,E,S,I)
   if (line == NULL || line->get_state() == I) {
+
+
     // update counters
     // Increment the directory operation counter like signalrds,
     // Do not forget to update miss/hit counter
     read_misses++;
     response_replyds++;
 
-    cache_line *newline = allocate_line(addr);
-    newline->set_state(I);
     signalRd(addr, processor_number);
   }
   else {
@@ -68,9 +68,6 @@ void MESI::PrWr(ulong addr, int processor_number) {
   if (line == NULL || line->get_state() == I) {
     // is not found, increment miss counter
     write_misses++;
-    // now allocate new line
-    cache_line *newLine = allocate_line(addr);
-    newLine->set_state(M);
 
     // send ReadX request
     signalRdX(addr, processor_number);
@@ -130,6 +127,10 @@ void MESI::signalRd(ulong addr, int processor_number){
 
   // Check the directory state and update the cache2cache counter
   cache_line* line = find_line(addr);
+
+  if (line == NULL) {
+    line = allocate_line(addr);
+  }
   dir_entry* dir_line = directory->find_dir_line(line->get_tag());
   if (dir_line == NULL) {
     memory_transactions++;
@@ -139,9 +140,13 @@ void MESI::signalRd(ulong addr, int processor_number){
     // Check whether the directory entry is updated. If not updated,
     // create a fresh entry in the directory, update the sharer vector or list.
     dir_line = directory->find_empty_line(0);
-    dir_line->set_dir_tag(line->get_tag());
-    // Update the directory state (U, EM, S_).
-    dir_line->set_dir_state(EM);
+    if (dir_line != NULL) {
+      dir_line->set_dir_tag(line->get_tag());
+      // Update the directory state (U, EM, S_).
+      dir_line->set_dir_state(EM);
+    } else {
+      printf("Dir line NULL... how??\n");
+    }
   } else {
     // directory found the line, so it exists in other caches
     cache2cache++;
@@ -167,6 +172,9 @@ void MESI::signalRdX(ulong addr, int processor_number){
     //Change Directory state to EM
     //Invalidate Sharers
     cache_line* line = find_line(addr);
+    if (line == NULL) {
+      line = allocate_line(addr);
+    }
     dir_entry* dir_line = directory->find_dir_line(line->get_tag());
     if(dir_line != NULL){
         dir_line->set_dir_state(EM);
@@ -181,6 +189,9 @@ void MESI::signalUpgr(ulong addr, int processor_number){
 	// Refer to signalUpgr description in the handout
     signal_upgrs++;
     cache_line* line = find_line(addr);
+    if (line == NULL) {
+      line = allocate_line(addr);
+    }
     dir_entry* dir_line = directory->find_dir_line(line->get_tag());
     if(dir_line != NULL) {
         dir_line->set_dir_state(EM);

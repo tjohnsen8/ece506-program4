@@ -29,20 +29,21 @@ int main(int argc, char *argv[]){
 
 	//***** accept the simulator parameters from the command prompt
     if (argv[1] == NULL){
-	print_input_format();
-	exit(0);
+	     print_input_format();
+	     exit(0);
     }
-	int instr_count = 20000000;
-	//***** Move the parameters to the local variables
+	 int instr_count = 20000000;
+
+  	//***** Move the parameters to the local variables
     int cache_size 		= atoi(argv[1]);
     int cache_assoc		= atoi(argv[2]);
-    blk_size	   		= atoi(argv[3]);
+    blk_size	   		  = atoi(argv[3]);
     num_processors 		= atoi(argv[4]);
-	protocol			= 0;
+  	protocol			= 0;
     int dir_type			= atoi(argv[5]);
-	char *fname 		= (char *)malloc(20);
+	  char *fname 		  = (char *)malloc(20);
     fname 				= argv[6];
-	if (argv[7]) {
+	   if (argv[7]) {
 			instr_count             = atoi(argv[7]);
 		}
 	//
@@ -117,20 +118,20 @@ void simulate_caches(char *fname, int instr_count){
 	// Print error if the file cannot be found or opened
     pFile = fopen (fname,"r");
     if (pFile == 0)	{
-		printf("Trace file problem\n");
-		exit(0);
+		  printf("Trace file problem\n");
+		  exit(0);
     }
 
 	// Read each entry from the trace file and perform
 	// the relevant operation (read/write) based on the input
     while (fscanf(pFile, "%d %c %x", &proc_no, &op, &addr) != EOF) {
-		line_count++;
-		if (op == 'w')
-			processor_cache[proc_no]->PrWr((ulong) addr, proc_no);
-		else
-			processor_cache[proc_no]->PrRd((ulong) addr, proc_no);
-		if (line_count == instr_count)
-			break;
+  		line_count++;
+  		if (op == 'w')
+  			processor_cache[proc_no]->PrWr((ulong) addr, proc_no);
+  		else
+  			processor_cache[proc_no]->PrRd((ulong) addr, proc_no);
+  		if (line_count == instr_count)
+  			break;
     }
     fclose(pFile);
 }
