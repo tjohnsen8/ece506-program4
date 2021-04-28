@@ -35,6 +35,7 @@ void MESI::PrRd(ulong addr, int processor_number) {
     // Increment the directory operation counter like signalrds,
     // Do not forget to update miss/hit counter
     read_misses++;
+
     signalRd(addr, processor_number);
   }
   else {
@@ -186,8 +187,10 @@ void MESI::signalRdX(ulong addr, int processor_number){
 
     dir_entry* dir_line = directory->find_dir_line(line->get_tag());
     if(dir_line != NULL){
-        signal_rdxs++;
-        if (dir_line->get_state() != U) {
+        dir_state ds = dir_line->get_state();
+        if (ds == EM)
+          signal_rdxs++;
+        if (ds != U) {
           dir_line->sendInv_to_sharer(addr, num_processors, processor_number);
           cache2cache++;
         }
