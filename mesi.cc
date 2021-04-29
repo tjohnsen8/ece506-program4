@@ -257,10 +257,7 @@ void MESI::Int(ulong addr) {
   flushes++;
   interventions++;
 
-  if (line->get_state() == M)
-  {
-    write_back(addr);
-  }
+  write_back(addr);
 
   // always go to shared state
   line->set_state(S);
