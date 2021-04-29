@@ -48,9 +48,11 @@ void FBV::sendInv_to_sharer(ulong addr, int num_proc, int proc_num){
 	// for all the processors except for proc_num
 	// Make sure that you check the FBV to see if the
 	// bit is set
+  // Remove sharer
   for (int i=0; i<num_proc; i++) {
     if (i != proc_num && bit[i]) {
       sendInv(addr, i);
+      remove_sharer_entry(i);
     }
   }
 }

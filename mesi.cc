@@ -187,6 +187,9 @@ void MESI::signalRdX(ulong addr, int processor_number){
 
     dir_entry* dir_line = directory->find_dir_line(line->get_tag());
     if(dir_line != NULL){
+        // update the sharer vector or list, do this before sendInv
+        dir_line->add_sharer_entry(processor_number);
+
         dir_state ds = dir_line->get_state();
         if (ds == EM)
           signal_rdxs++;
@@ -203,14 +206,14 @@ void MESI::signalRdX(ulong addr, int processor_number){
       // create a fresh entry in the directory, update the sharer vector or list.
       dir_line = directory->find_empty_line(0);
       dir_line->set_dir_tag(line->get_tag());
+      // update the sharer vector or list.
+      dir_line->add_sharer_entry(processor_number);
     }
 
     // dir line state always goes to EM
     dir_line->set_dir_state(EM);
     // line always goes to M
     line->set_state(M);
-    // update the sharer vector or list.
-    dir_line->add_sharer_entry(processor_number);
 }
 
 void MESI::signalUpgr(ulong addr, int processor_number){
@@ -294,6 +297,6 @@ void MESI::Inv(ulong addr) {
   invalidations++;
   // always set to state I
   line->set_state(I);
-  // remove from sharers
-  directory->find_dir_line(line->get_tag())->remove_sharer_entry(cache_num);
+
+  // remove from sharers will occur in fbc/ssci
 }

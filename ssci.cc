@@ -14,12 +14,12 @@ void SSCI::add_sharer_entry(int proc_no){
 
 void SSCI::remove_sharer_entry(int proc_num){
 	// Remove the entry from the linked list
-  for (ssci_it it = cache_list.begin(); it != cache_list.end(); it++) {
-    if (*it == proc_num) {
-      cache_list.erase(it++);
-      break;
-    }
-  }
+  cache_list.remove_if([&proc_num] (int proc) {
+    if (proc == proc_num)
+      return true;
+    else
+      return false;
+  });
 }
 
 int SSCI::is_cached(int proc_num) {
@@ -29,13 +29,17 @@ int SSCI::is_cached(int proc_num) {
 void SSCI::sendInv_to_sharer(ulong addr, int num_proc, int proc_num){
 	// YOUR CODE HERE
 	//
-	// Erase the entry from the list except for the latest entry
-	// The latest entry will be for the processor which is invoking
-	// this function - %TODO%, WHAT?
 	// Invoke the sendInv function defined in the main function
-  for (ssci_it it = cache_list.begin(); it != cache_list.end(); it++) {
+  // Remove sharer AFTER sending the Invalidate
+  ssci_it it = cache_list.begin();
+  while ( it != cache_list.end()) {
     if (*it != proc_num)
+    {
       sendInv(addr, *it);
+      remove_sharer_entry(*it++);
+    }
+    else
+      it++;
   }
 }
 
